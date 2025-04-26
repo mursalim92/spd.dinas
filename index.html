@@ -1,1 +1,229 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
 
+  <!-- Load jQuery DULU -->
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  <!-- Baru load DataTables -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      line-height: 1.6;
+    }
+    form {
+      background: #f4f4f4;
+      padding: 20px;
+      border-radius: 5px;
+      margin-bottom: 20px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin: 5px 0 15px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background: #4285f4;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-right: 10px;
+    }
+    button:hover {
+      background: #3367d6;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background-color: #f2f2f2;
+    }
+    .readonly {
+      background-color: #e9e9e9;
+    }
+  </style>
+</head>
+
+<body>
+
+<h2>Form SPD Dinas</h2>
+<form id="myForm" onsubmit="event.preventDefault(); submitForm();">
+  <label>No. Surat Dinas:</label>
+  <input type="text" id="noSurat" required>
+
+  <label>No. SPD:</label>
+  <input type="text" id="noSpd">
+
+  <label>Tanggal SPD:</label>
+  <input type="date" id="tglSpd">
+
+  <label>NIK:</label>
+  <input type="text" id="nik" onblur="autoFill()" required>
+
+  <label>Nama:</label>
+  <input type="text" id="nama" class="readonly" readonly>
+
+  <label>Jabatan:</label>
+  <input type="text" id="jabatan" class="readonly" readonly>
+
+  <label>Departemen:</label>
+  <input type="text" id="departemen" class="readonly" readonly>
+
+  <label>Grade:</label>
+  <input type="text" id="grade" class="readonly" readonly>
+
+  <label>Lokasi Dinas:</label>
+  <select id="lokasi" required></select>
+
+  <label>Mulai Dinas:</label>
+  <input type="date" id="mulai">
+
+  <label>Akhir Dinas:</label>
+  <input type="date" id="akhir">
+
+  <label>Hari Tidak Dihitung:</label>
+  <input type="number" id="hariOff" min="0">
+
+  <label>Status Dinas:</label>
+  <input type="text" id="status">
+
+  <label>HR Site:</label>
+  <input type="text" id="hrSite">
+
+  <label>Approval Status:</label>
+  <input type="text" id="approval">
+
+  <button type="submit">Simpan</button>
+  <button type="button" onclick="resetForm()">Reset</button>
+</form>
+
+<h3>Data SPD Dinas</h3>
+<table id="dataTable" class="display">
+  <thead>
+    <tr>
+      <th>No Surat</th>
+      <th>No SPD</th>
+      <th>Tgl SPD</th>
+      <th>NIK</th>
+      <th>Nama</th>
+      <th>Jabatan</th>
+      <th>Departemen</th>
+      <th>Grade</th>
+      <th>Lokasi</th>
+      <th>Mulai</th>
+      <th>Akhir</th>
+      <th>Hari Off</th>
+      <th>Status</th>
+      <th>HR Site</th>
+      <th>Approval</th>
+      <th>Aksi</th>
+    </tr>
+  </thead>
+  <tbody></tbody>
+</table>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+
+</body>
+<script>
+const API_URL = 'https://script.google.com/macros/s/AKfycbxJsVXK-6Yk6hKZtMOLPSpEpB7HX-XFqMsnF97zyz4TS0B0gN34LaSCLsLxMXLY2cdf/exec'; // Ganti dengan URL Web App kamu
+
+function submitForm() {
+  $("#loading").show();
+  const data = {
+    noSurat: $('#noSurat').val(),
+    noSpd: $('#noSpd').val(),
+    tglSpd: $('#tglSpd').val(),
+    nik: $('#nik').val(),
+    nama: $('#nama').val(),
+    jabatan: $('#jabatan').val(),
+    departemen: $('#departemen').val(),
+    grade: $('#grade').val(),
+    lokasi: $('#lokasi').val(),
+    mulai: $('#mulai').val(),
+    akhir: $('#akhir').val(),
+    hariOff: $('#hariOff').val(),
+    status: $('#status').val(),
+    hrSite: $('#hrSite').val(),
+    approval: $('#approval').val()
+  };
+  
+  $.post(API_URL, JSON.stringify(data), function(response) {
+    alert('✅ Data berhasil disimpan!');
+    resetForm();
+    loadData();
+  }).fail(function() {
+    alert('❌ Gagal menyimpan data.');
+  }).always(function() {
+    $("#loading").hide();
+  });
+}
+
+function loadData() {
+  $.get(API_URL, function(response) {
+    const data = JSON.parse(response);
+    let table = $('#dataTable').DataTable();
+    table.clear();
+    data.slice(1).forEach(row => {
+      table.row.add([
+        row[0], row[1], row[2], row[3], row[4], row[5],
+        row[6], row[7], row[8], row[9], row[10], row[11],
+        row[12], row[13], row[14],
+        `<button onclick="editData('${row[0]}')">Edit</button> 
+         <button onclick="deleteData('${row[0]}')">Hapus</button>`
+      ]);
+    });
+    table.draw();
+  });
+}
+
+function deleteData(noSurat) {
+  if(confirm('Yakin mau hapus data ini?')) {
+    $("#loading").show();
+    $.ajax({
+      url: API_URL + `?noSurat=${encodeURIComponent(noSurat)}`,
+      type: 'DELETE',
+      success: function(result) {
+        alert('✅ Data berhasil dihapus!');
+        loadData();
+      },
+      error: function() {
+        alert('❌ Gagal menghapus data.');
+      },
+      complete: function() {
+        $("#loading").hide();
+      }
+    });
+  }
+}
+
+function resetForm() {
+  $('#myForm')[0].reset();
+}
+
+$(document).ready(function() {
+  $('#dataTable').DataTable();
+  loadData();
+});
+</script>
+
+<div id="loading" style="display:none">Loading...</div>
+
+</html>
