@@ -1,12 +1,11 @@
+
+
 <!DOCTYPE html>
 <html>
 <head>
   <base target="_top">
-
-  <!-- Load jQuery DULU -->
+   <!-- Load jQuery and DataTables -->
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-
-  <!-- Baru load DataTables -->
   <link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
   <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
@@ -15,19 +14,21 @@
       font-family: Arial, sans-serif;
       margin: 20px;
       line-height: 1.6;
+      background: #f9f9f9;
     }
     form {
-      background: #f4f4f4;
+      background: #fff;
       padding: 20px;
-      border-radius: 5px;
-      margin-bottom: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
     }
     input, select {
       width: 100%;
-      padding: 8px;
+      padding: 10px;
       margin: 5px 0 15px;
-      border: 1px solid #ddd;
-      border-radius: 4px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
       box-sizing: border-box;
     }
     button {
@@ -35,7 +36,7 @@
       color: white;
       border: none;
       padding: 10px 15px;
-      border-radius: 4px;
+      border-radius: 5px;
       cursor: pointer;
       margin-right: 10px;
     }
@@ -45,6 +46,9 @@
     table {
       width: 100%;
       border-collapse: collapse;
+      background: #fff;
+      border-radius: 8px;
+      overflow: hidden;
     }
     th, td {
       border: 1px solid #ddd;
@@ -56,6 +60,17 @@
     }
     .readonly {
       background-color: #e9e9e9;
+    }
+    #loading {
+      display:none; 
+      position:fixed; 
+      top:0; left:0; right:0; bottom:0; 
+      background:rgba(255,255,255,0.7); 
+      z-index:1000; 
+      text-align:center; 
+      padding-top:200px; 
+      font-size:20px; 
+      font-weight:bold;
     }
   </style>
 </head>
@@ -89,7 +104,13 @@
   <input type="text" id="grade" class="readonly" readonly>
 
   <label>Lokasi Dinas:</label>
-  <select id="lokasi" required></select>
+  <select id="lokasi" required>
+    <option value="">--Pilih Lokasi--</option>
+    <option value="Jakarta">Jakarta</option>
+    <option value="Bandung">Bandung</option>
+    <option value="Surabaya">Surabaya</option>
+    <!-- Tambah lokasi sesuai kebutuhan -->
+  </select>
 
   <label>Mulai Dinas:</label>
   <input type="date" id="mulai">
@@ -137,15 +158,18 @@
   </thead>
   <tbody></tbody>
 </table>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css">
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 
-</body>
+<div id="loading">⏳ Sedang diproses...</div>
+
 <script>
-const API_URL = 'https://script.google.com/macros/s/AKfycbxJsVXK-6Yk6hKZtMOLPSpEpB7HX-XFqMsnF97zyz4TS0B0gN34LaSCLsLxMXLY2cdf/exec'; // Ganti dengan URL Web App kamu
+const API_URL = 'https://script.google.com/macros/s/AKfycbxJsVXK-6Yk6hKZtMOLPSpEpB7HX-XFqMsnF97zyz4TS0B0gN34LaSCLsLxMXLY2cdf/exec'; // Ganti URL
 
 function submitForm() {
+  if (!$('#noSurat').val() || !$('#nik').val() || !$('#lokasi').val()) {
+    alert('⚠️ No Surat, NIK, dan Lokasi wajib diisi!');
+    return;
+  }
+
   $("#loading").show();
   const data = {
     noSurat: $('#noSurat').val(),
@@ -164,8 +188,11 @@ function submitForm() {
     hrSite: $('#hrSite').val(),
     approval: $('#approval').val()
   };
-  
-  $.post(API_URL, JSON.stringify(data), function(response) {
+
+  $.post(API_URL, JSON.stringify({
+    method: 'post',
+    data: data
+  }), function(response) {
     alert('✅ Data berhasil disimpan!');
     resetForm();
     loadData();
@@ -175,6 +202,7 @@ function submitForm() {
     $("#loading").hide();
   });
 }
+
 
 function loadData() {
   $.get(API_URL, function(response) {
@@ -197,33 +225,49 @@ function loadData() {
 function deleteData(noSurat) {
   if(confirm('Yakin mau hapus data ini?')) {
     $("#loading").show();
-    $.ajax({
-      url: API_URL + `?noSurat=${encodeURIComponent(noSurat)}`,
-      type: 'DELETE',
-      success: function(result) {
-        alert('✅ Data berhasil dihapus!');
-        loadData();
-      },
-      error: function() {
-        alert('❌ Gagal menghapus data.');
-      },
-      complete: function() {
-        $("#loading").hide();
-      }
+    $.post(API_URL, JSON.stringify({
+      method: 'delete',
+      data: { noSurat: noSurat }
+    }), function(result) {
+      alert('✅ Data berhasil dihapus!');
+      loadData();
+    }).fail(function() {
+      alert('❌ Gagal menghapus data.');
+    }).always(function() {
+      $("#loading").hide();
     });
   }
 }
+
 
 function resetForm() {
   $('#myForm')[0].reset();
 }
 
 $(document).ready(function() {
-  $('#dataTable').DataTable();
+  $('#dataTable').DataTable({ searching: true });
   loadData();
 });
+
+function autoFill() {
+  const nik = $('#nik').val();
+  if (!nik) return;
+
+  $.get(API_URL, function(response) {
+    const data = JSON.parse(response);
+    const user = data.find((row, index) => index !== 0 && row[3] == nik);
+    if (user) {
+      $('#nama').val(user[4]);
+      $('#jabatan').val(user[5]);
+      $('#departemen').val(user[6]);
+      $('#grade').val(user[7]);
+    } else {
+      alert('❌ NIK tidak ditemukan!');
+      $('#nama, #jabatan, #departemen, #grade').val('');
+    }
+  });
+}
 </script>
 
-<div id="loading" style="display:none">Loading...</div>
-
+</body>
 </html>
